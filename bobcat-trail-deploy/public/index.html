@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1" />
+  <link rel="manifest" href="manifest.json" crossorigin="use-credentials" />
+
+  <link rel="apple-touch-icon" href="assets/icons/icon-128x128.png" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-144x144.png" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-152x152.png" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-384x384.png" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-512x512.png" />
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css"
+    crossorigin="anonymous" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js" crossorigin="anonymous"></script>
+  <script type="text/javascript" src="graphhopper-js-api-client/dist/graphhopper-client.js"></script>
+  <script type="text/javascript" src="graphhopper-js-api-client/js/togeojson.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+  <link rel="stylesheet" media="screen" href="css/style.css">
+
+  <script type="text/javascript" src="buildings.js"></script>
+  <meta name="apple-mobile-web-app-status-bar" content="#501214" />
+  <meta name="theme-color" content="#501214" />
+
+  <script type="module" src="./courseobj.js"></script>
+  <script type="module">
+    import { createNewCourse, getEventDivs, deleteCourseObject } from "./courseobj.js";
+  </script>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol/dist/L.Control.Locate.min.js"
+    charset="utf-8"></script>
+  <script>
+    let toggle = 0;
+    function openAddNewCourse() {
+      var NewCourseButton = document.getElementById("div-new-course");
+      var divContainerCreate = document.getElementById("create-new-course-button");
+      var plusSignToggle = document.getElementById("plus-sign");
+      var textToggle = document.getElementById("course-text-new");
+      if (toggle === 0) {
+        toggle = 1;
+        plusSignToggle.innerHTML = "×";
+        plusSignToggle.style.color = "#FFFFFF";
+        textToggle.innerHTML = "Close Box";
+        textToggle.style.color = "#FFFFFF";
+        // divContainerCreate.style.backgroundColor = "rgba(80,18,20,0.6)";
+        divContainerCreate.style.backgroundColor = "rgba(80,18,20,1)";
+
+        NewCourseButton.classList.add("active");
+      } else {
+        toggle = 0;
+        plusSignToggle.innerHTML = "+";
+        plusSignToggle.style.color = "#000000";
+        textToggle.innerHTML = "Create New";
+        textToggle.style.color = "#000000";
+        // divContainerCreate.style.backgroundColor = "rgba(256,256,256,0.6)";
+        divContainerCreate.style.backgroundColor = "rgba(256,256,256,1)";
+
+        NewCourseButton.classList.remove("active");
+      }
+    }
+  </script>
+  <script>
+    // if ("serviceWorker" in navigator) {
+    //   window.addEventListener("load", function () {
+    //     navigator.serviceWorker
+    //       .register("/serviceWorker.js")
+    //       .then(res => console.log("service worker registered"))
+    //       .catch(err => console.log("service worker not registered", err))
+    //   })
+    // }
+  </script>
+  <script>
+    window.onload = function () {
+      getEventDivs()
+    }
+  </script>
+</head>
+
+<body>
+  <main>
+    <nav>
+      <p class="header-text">
+        Bobcat-Trail
+      </p>
+    </nav>
+    <div id="div-map">
+    </div>
+    <script>
+      var map = L.map('div-map').setView([29.889165122722037, -97.94293405586659], 17, {
+        tap: false
+      });
+
+      // var map = new L.Map('map', {
+      //     tap: false, // ref https://github.com/Leaflet/Leaflet/issues/7255
+      //   ...
+      // });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
+          '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+          'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+        maxZoom: 18,
+        id: 'mapbox.streets'
+      }).addTo(map);
+
+      map.addControl(
+        L.control.locate({
+          locateOptions: {
+            enableHighAccuracy: true
+          }
+        })
+      );
+    </script>
+    <div class="autocomplete">
+      <div id="div-search-bar">
+        <form id="search-bar-form">
+          <input type="text" id="search-bar" name="search-bar" placeholder="Search here..." autocomplete="off">
+          <button type="button" id="search-bar-button"><img src="assets/images/search-icon-2.png" id="search-img"
+              onclick="openSearchResultModal(map)"></button>
+        </form>
+      </div>
+    </div>
+    <div id="div-content-box">
+      <div id="div-inner-content-box">
+        <div id="handle-grab"></div>
+        <div class="div-subcontent" id="div-search-result">
+          <p class="div-title-text" id="search-result-header">Search result:</p>
+          <div id="search-result-left-right-flex">
+            <p id="search-result-body"></p>
+            <button type="button" id="search-result-button" onclick="generateRouteSearch(map)">Go</button>
+          </div>
+        </div>
+        <div class="div-subcontent" id="div-instructions">
+          <p class="div-title-text">Details for route:</p>
+          <div id="div-instructions-wrapper">
+            <p id="distance-and-time"></p>
+          </div>
+        </div>
+        <div class="div-subcontent">
+          <p class="div-title-text">Your schedule:</p>
+          <div id="class-container" class="schedule-flex-wrapper">
+            <script>
+              var course_object = {
+                latlng: { lat: buildings["Derrick Hall (DERR)"][0], lng: buildings["Derrick Hall (DERR)"][1] }
+              }
+            </script>
+            <div class="course-circle" id="create-new-course-button" onclick="openAddNewCourse()">
+              <p id="plus-sign">+</p>
+              <p id="course-text-new">
+                Add Course
+              </p>
+            </div>
+            <div class="course-circle" id="generate-route-button" onclick="generateRoute()">
+              <img src="assets/images/walking.png" id="person-walking-ico">
+              <p id="course-text-generate">
+                Generate Route
+              </p>
+            </div>
+            <div class="course-circle" id="clear-markers-button" onclick="clearMarkers()">
+              <img src="assets/images/remove-map-location-icon.png" id="clear-markers-ico">
+              <p id="clear-markers-text">
+                Clear Markers
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="div-subcontent" id="div-new-course">
+          <form autocomplete="off">
+            <div class="modal-create-new-course">
+              <div class="add-course-header">
+                <p class="div-title-text">Add new course:</p>
+              </div>
+              <div class="add-course-flex-wrapper">
+                <div class="left-right-flex-wrapper">
+                  <label for="course-name">Course name:</label>
+                  <input type="text" name="course-name" id="course-name" size="14" placeholder="CS3398">
+                </div>
+                <div class="left-right-flex-wrapper">
+                  <label for="course-location" id="location-error-msg">Course location:</label>
+                  <div class="autocomplete" id="course-location-input">
+                    <input type="text" name="course-location" id="course-location" size="14"
+                      placeholder="Derrick Hall (DERR)">
+                  </div>
+                </div>
+                <div class="left-right-flex-wrapper">
+                  <label for="course-location">Course days:</label>
+                  <select name="course-days" id="course-days" multiple>
+                    <option>Monday</option>
+                    <option>Tuesday</option>
+                    <option>Wednesday</option>
+                    <option>Thursday</option>
+                    <option>Friday</option>
+                  </select>
+                </div>
+                <div class="left-right-flex-wrapper">
+                  <label for="course-start-time">Course start-time:</label>
+                  <input type="time" min="08:00" max="21:30" step="600" name="course-start-time" id="course-start-time"
+                    value="08:00">
+                </div>
+                <div class="left-right-flex-wrapper">
+                  <label for="course-end-time">Course end-time:</label>
+                  <input type="time" min="09:20" max="22:50" step="600" name="course-end-time" id="course-end-time"
+                    value="09:20">
+                </div>
+                <div class="left-right-flex-wrapper">
+                  <label for="course-color">Course color:</label>
+                  <input type="color" name="course-color" id="course-color" value="#501214">
+                </div>
+                <button type="button" onclick="createNewCourse()" id="submit-new-course">Submit</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    </div>
+  </main>
+  <script type="text/javascript" src="autocomplete.js"></script>
+</body>
